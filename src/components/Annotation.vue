@@ -29,9 +29,9 @@ const clearCanvas = () => {
   el.height = el.height;
 };
 
-const drawRect = () => {
+const drawRect = (annotationItem: AnnotationItem) => {
   const ctx = canvasRef.value!.getContext("2d")!;
-  const { from, to } = currentAnnotationItem.value!;
+  const { from, to } = annotationItem;
   const width = Math.abs(from.x - to.x);
   const height = Math.abs(from.y - to.y);
   ctx.beginPath();
@@ -41,9 +41,9 @@ const drawRect = () => {
   ctx.closePath();
 };
 
-const drawArrow = () => {
+const drawArrow = (annotationItem: AnnotationItem) => {
   const ctx = canvasRef.value!.getContext("2d")!;
-  const { from, to } = currentAnnotationItem.value!;
+  const { from, to } = annotationItem;
   const d = Math.sqrt(Math.pow(from.y - to.y, 2) + Math.pow(from.x - to.x, 2));
   const h = Math.min(d * 0.2, 35);
   const v = Math.PI / 4;
@@ -79,11 +79,27 @@ const drawArrow = () => {
   ctx.closePath();
 };
 
+const drawAnnotationList = () => {
+  // 可以使用离屏 canvas 来缓存这些已存在的批注来降低 api 调用次数
+  annotationList.value.forEach((item) => {
+    if (item.type === "arrow") {
+      drawArrow(item);
+    } else {
+      drawRect(item);
+    }
+  });
+};
+
+const clear = () => {
+  annotationList.value = [];
+  clearCanvas();
+};
+
 useEventListener(canvasRef, "mousedown", ({ clientX, clientY }: MouseEvent) => {
   mousedown = true;
   // 记录起始点信息
   currentAnnotationItem.value = {
-    type: "rect",
+    type: type.value,
     from: {
       x: clientX - canvasLeft.value,
       y: clientY - canvasTop.value,
@@ -104,10 +120,11 @@ useEventListener("mousemove", ({ clientX, clientY }: MouseEvent) => {
     y: clientY - canvasTop.value,
   });
   clearCanvas();
+  drawAnnotationList();
   if (type.value === "rect") {
-    drawRect();
+    drawRect(currentAnnotationItem.value!);
   } else {
-    drawArrow();
+    drawArrow(currentAnnotationItem.value!);
   }
 });
 useEventListener("mouseup", ({ clientX, clientY }: MouseEvent) => {
@@ -128,10 +145,12 @@ useEventListener("mouseup", ({ clientX, clientY }: MouseEvent) => {
 <template>
   <canvas ref="canvasRef" width="1280" height="720" class="canvas"></canvas>
   <br />
-  标注类型：<select v-model="type" @input="clearCanvas">
+  标注类型：<select v-model="type">
     <option value="arrow">箭头</option>
     <option value="rect">方框</option>
   </select>
+  |
+  <button @click="clear">清除画布</button>
 </template>
 
 <style scoped>
