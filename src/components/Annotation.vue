@@ -19,13 +19,9 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 let mousedown = false;
 const annotationList = ref<AnnotationItem[]>([]);
 const currentAnnotationItem = ref<AnnotationItem | null>(null);
+const type = ref<"arrow" | "rect">("arrow");
 
-const {
-  left: canvasLeft,
-  top: canvasTop,
-  width: canvasWidth,
-  height: canvasHeight,
-} = useElementBounding(canvasRef);
+const { left: canvasLeft, top: canvasTop } = useElementBounding(canvasRef);
 
 const clearCanvas = () => {
   const el = canvasRef.value!;
@@ -45,23 +41,43 @@ const drawRect = () => {
   ctx.closePath();
 };
 
-// const drawArrow = () => {
-//   const ctx = canvasRef.value!.getContext("2d")!;
-//   const { from, to } = currentAnnotationItem.value!;
-//   const diagonal = Math.sqrt(
-//     Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2)
-//   );
-//   ctx.beginPath();
-//   ctx.fillStyle = c;
-//   ctx.moveTo(from.x, from.y);
-//   ctx.lineTo(_.x, _.y);
-//   ctx.lineTo(b.x, b.y);
-//   ctx.lineTo(f.x, f.y);
-//   ctx.lineTo(w.x, w.y);
-//   ctx.lineTo(E.X, E.y);
-//   ctx.fill();
-//   ctx.closePath();
-// };
+const drawArrow = () => {
+  const ctx = canvasRef.value!.getContext("2d")!;
+  const { from, to } = currentAnnotationItem.value!;
+  const d = Math.sqrt(Math.pow(from.y - to.y, 2) + Math.pow(from.x - to.x, 2));
+  const h = Math.min(d * 0.2, 35);
+  const v = Math.PI / 4;
+  const y = Math.atan(Math.abs(to.y - from.y) / Math.abs(to.x - from.x));
+  const p = 0.7 * h;
+  const m = to.x > from.x ? 1 : -1;
+  const g = to.y > from.y ? 1 : -1;
+  const p1 = {
+    x: to.x - h * Math.cos(v - y) * m,
+    y: to.y + h * Math.sin(v - y) * g,
+  };
+  const p2 = {
+    x: to.x - h * Math.cos(v + y) * m,
+    y: to.y - h * Math.sin(v + y) * g,
+  };
+  const p3 = {
+    x: to.x - p * Math.cos(v - y - v / 2) * m,
+    y: to.y + p * Math.sin(v - y - v / 2) * g,
+  };
+  const p4 = {
+    x: to.x - p * Math.cos(v + y - v / 2) * m,
+    y: to.y - p * Math.sin(v + y - v / 2) * g,
+  };
+  ctx.beginPath();
+  ctx.fillStyle = "#ff0000";
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(p3.x, p3.y);
+  ctx.lineTo(p1.x, p1.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.lineTo(p4.x, p4.y);
+  ctx.fill();
+  ctx.closePath();
+};
 
 useEventListener(canvasRef, "mousedown", ({ clientX, clientY }: MouseEvent) => {
   mousedown = true;
@@ -88,7 +104,11 @@ useEventListener("mousemove", ({ clientX, clientY }: MouseEvent) => {
     y: clientY - canvasTop.value,
   });
   clearCanvas();
-  drawRect();
+  if (type.value === "rect") {
+    drawRect();
+  } else {
+    drawArrow();
+  }
 });
 useEventListener("mouseup", ({ clientX, clientY }: MouseEvent) => {
   if (mousedown) {
@@ -107,6 +127,11 @@ useEventListener("mouseup", ({ clientX, clientY }: MouseEvent) => {
 
 <template>
   <canvas ref="canvasRef" width="1280" height="720" class="canvas"></canvas>
+  <br />
+  标注类型：<select v-model="type" @input="clearCanvas">
+    <option value="arrow">箭头</option>
+    <option value="rect">方框</option>
+  </select>
 </template>
 
 <style scoped>
