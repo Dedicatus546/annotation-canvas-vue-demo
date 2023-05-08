@@ -20,4 +20,4 @@ then you can see follow page. and you can drag you mouse in rect to create a ann
 
 ![](./demo.gif)
 
-there is a post []() in my personal site. it show the principle of creating the annotation.
+there is a post [使用 canvas 来实现简单的批注功能](https://prohibitorum.top/648f3f0c7d1a.html) in my personal site. it show the principle of creating the annotation.
